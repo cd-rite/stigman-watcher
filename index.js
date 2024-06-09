@@ -6,14 +6,15 @@ if (!configValid) {
   logger.end()
   process.exit(1)
 }
-import startFsEventWatcher from './lib/events.js'
+// import startFsEventWatcher from './lib/events.js'
 import * as auth from './lib/auth.js'
 import * as api from './lib/api.js'
 import { serializeError } from 'serialize-error'
-import { initScanner } from './lib/scan.js'
+// import { initScanner } from './lib/scan.js'
 import semverGte from 'semver/functions/gte.js'
 import Alarm from './lib/alarm.js'
 import * as CONSTANTS from './lib/consts.js'
+import * as fs from 'fs'
 
 const minApiVersion = '1.2.7'
 const component = 'index'
@@ -61,12 +62,16 @@ async function run() {
     
     await preflightServices()
     setupAlarmHandlers()
-    if (options.mode === 'events') {
-      startFsEventWatcher()
-    }
-    else if (options.mode === 'scan') {
-      initScanner()
-    }
+    writeMetricsFile()
+    setInterval(writeMetricsFile, 24 * 60 * 60000)
+
+
+    // if (options.mode === 'events') {
+    //   startFsEventWatcher()
+    // }
+    // else if (options.mode === 'scan') {
+    //   initScanner()
+    // }
   }
   catch (e) {
     logError(e)
@@ -134,7 +139,7 @@ async function preflightServices () {
     api.getScapBenchmarkMap()
   ]
   await Promise.all(promises)
-  setInterval(refreshCollection, 10 * 60000)
+  setInterval(refreshCollection, 60 * 60000)
   
   // OAuth scope 'stig-manager:user:read' was not required for early versions of Watcher
   // For now, fail gracefully if we are blocked from calling /user
@@ -179,6 +184,38 @@ async function refreshCollection() {
       message: 'refreshing collection cache'
     })
     await api.getCollection(options.collectionId)
+  }
+  catch (e) {
+    logError(e)
+  }
+}
+
+
+
+async function writeMetricsFile() {
+  try {
+    if (Alarm.isAlarmed()) return
+    logger.info({
+      component,
+      message: 'Getting collection metrics and writing file'
+    })
+    let format = 'csv' // metrics endpoints can return csv or json
+    let metricsResponse = await api.getCollectionMetrics(options.collectionId, format)
+    let metricsDate = new Date().toISOString()
+      .replace(/[:.]/g, '-')  // Replace colons and dots with hyphens
+
+    let metricsFileName = `Collection_${options.collectionId}_${metricsDate}.${format}`
+    if (format === 'json') {
+      metricsResponse = JSON.stringify(metricsResponse)
+    }
+    fs.writeFileSync(metricsFileName, metricsResponse);
+
+    logger.info({
+      component,
+      message: `file written: ${metricsFileName}`
+    })
+
+
   }
   catch (e) {
     logError(e)
