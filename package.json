@@ -16,12 +16,13 @@
     "test": "c8 --reporter=html --reporter=text mocha"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=20"
   },
   "dependencies": {
     "@nuwcdivnpt/stig-manager-client-modules": "^1.6.7",
     "atob": "^2.1.2",
     "better-queue": "^3.8.10",
+    "better-queue-memory": "^1.0.4",
     "chokidar": "^3.5.1",
     "commander": "^7.2.0",
     "dotenv": "^8.2.0",
@@ -43,6 +44,7 @@
     "chai": "^6.0.1",
     "esbuild": "^0.25.9",
     "mocha": "11.7.5",
+    "postject": "^1.0.0-alpha.6",
     "testcontainers": "^11.5.1"
   }
 }
